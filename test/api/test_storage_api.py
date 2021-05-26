@@ -13,12 +13,11 @@ from spaceone.core import utils
 from spaceone.core.service import BaseService
 from spaceone.core.locator import Locator
 from spaceone.core.pygrpc import BaseAPI
-from spaceone.api.statistics.v1 import schedule_pb2
-from spaceone.statistics.api.v1.schedule import Schedule
+from spaceone.api.statistics.v1 import storage_pb2
+from spaceone.statistics.api.v1.storage import Storage
 from test.factory.schedule_factory import ScheduleFactory
 
-
-class _MockScheduleService(BaseService):
+class _MockStorageService(BaseService):
 
     def add(self, params):
         params = copy.deepcopy(params)
@@ -55,7 +54,7 @@ class _MockScheduleService(BaseService):
         }
 
 
-class TestScheduleAPI(unittest.TestCase):
+class TestStorageAPI(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -72,9 +71,9 @@ class TestScheduleAPI(unittest.TestCase):
         disconnect()
 
     @patch.object(BaseAPI, '__init__', return_value=None)
-    @patch.object(Locator, 'get_service', return_value=_MockScheduleService())
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
-    def test_add_schedule(self, mock_parse_request, *args):
+    def test_add_storage(self, mock_parse_request, *args):
         params = {
             'topic': utils.random_string(),
             'options': {
@@ -185,23 +184,23 @@ class TestScheduleAPI(unittest.TestCase):
         }
         mock_parse_request.return_value = (params, {})
 
-        schedule_servicer = Schedule()
-        schedule_info = schedule_servicer.add({}, {})
+        storage_servicer = Storage()
+        storage_info = storage_servicer.register({}, {})
 
-        print_message(schedule_info, 'test_add_schedule')
-        schedule_data = MessageToDict(schedule_info, preserving_proto_field_name=True)
+        print_message(storage_info, 'test_register_storage')
+        storage_data = MessageToDict(storage_info, preserving_proto_field_name=True)
 
-        self.assertIsInstance(schedule_info, schedule_pb2.ScheduleInfo)
-        self.assertEqual(schedule_info.topic, params['topic'])
-        self.assertEqual(schedule_info.state, schedule_pb2.ScheduleInfo.State.ENABLED)
-        self.assertEqual(schedule_data['options'], params['options'])
-        self.assertDictEqual(schedule_data['schedule'], params['schedule'])
-        self.assertDictEqual(schedule_data['tags'], params['tags'])
-        self.assertEqual(schedule_info.domain_id, params['domain_id'])
-        self.assertIsNotNone(getattr(schedule_info, 'created_at', None))
+        self.assertIsInstance(storage_info, storage_pb2.StorageInfo)
+        self.assertEqual(storage_info.topic, params['topic'])
+        self.assertEqual(storage_info.state, storage_pb2.StorageInfo.State.ENABLED)
+        self.assertEqual(storage_data['options'], params['options'])
+        self.assertDictEqual(storage_data['schedule'], params['schedule'])
+        self.assertDictEqual(storage_data['tags'], params['tags'])
+        self.assertEqual(storage_info.domain_id, params['domain_id'])
+        self.assertIsNotNone(getattr(storage_info, 'created_at', None))
 
     @patch.object(BaseAPI, '__init__', return_value=None)
-    @patch.object(Locator, 'get_service', return_value=_MockScheduleService())
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
     def test_update_schedule(self, mock_parse_request, *args):
         params = {
@@ -216,31 +215,31 @@ class TestScheduleAPI(unittest.TestCase):
         }
         mock_parse_request.return_value = (params, {})
 
-        schedule_servicer = Schedule()
-        schedule_info = schedule_servicer.update({}, {})
+        storage_servicer = Storage()
+        schedule_info = storage_servicer.update({}, {})
 
         print_message(schedule_info, 'test_update_schedule')
         schedule_data = MessageToDict(schedule_info, preserving_proto_field_name=True)
 
-        self.assertIsInstance(schedule_info, schedule_pb2.ScheduleInfo)
+        self.assertIsInstance(schedule_info, storage_pb2.StorageInfo)
         self.assertEqual(schedule_data['schedule'], params['schedule'])
         self.assertDictEqual(schedule_data['tags'], params['tags'])
 
     @patch.object(BaseAPI, '__init__', return_value=None)
-    @patch.object(Locator, 'get_service', return_value=_MockScheduleService())
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
     def test_delete_schedule(self, mock_parse_request, *args):
         mock_parse_request.return_value = ({}, {})
 
         schedule_servicer = Schedule()
-        result = schedule_servicer.delete({}, {})
+        result = schedule_servicer.deregister({}, {})
 
         print_message(result, 'test_delete_schedule')
 
         self.assertIsInstance(result, Empty)
 
     @patch.object(BaseAPI, '__init__', return_value=None)
-    @patch.object(Locator, 'get_service', return_value=_MockScheduleService())
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
     def test_enable_schedule(self, mock_parse_request, *args):
         params = {
@@ -250,16 +249,16 @@ class TestScheduleAPI(unittest.TestCase):
         }
         mock_parse_request.return_value = (params, {})
 
-        schedule_servicer = Schedule()
+        schedule_servicer = Storage()
         schedule_info = schedule_servicer.enable({}, {})
 
         print_message(schedule_info, 'test_enable_schedule')
 
-        self.assertIsInstance(schedule_info, schedule_pb2.ScheduleInfo)
-        self.assertEqual(schedule_info.state, schedule_pb2.ScheduleInfo.State.ENABLED)
+        self.assertIsInstance(schedule_info, storage_pb2.StorageInfo)
+        self.assertEqual(schedule_info.state, storage_pb2.StorageInfo.State.ENABLED)
 
     @patch.object(BaseAPI, '__init__', return_value=None)
-    @patch.object(Locator, 'get_service', return_value=_MockScheduleService())
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
     def test_disable_schedule(self, mock_parse_request, *args):
         params = {
@@ -269,7 +268,7 @@ class TestScheduleAPI(unittest.TestCase):
         }
         mock_parse_request.return_value = (params, {})
 
-        schedule_servicer = Schedule()
+        schedule_servicer = Storage()
         schedule_info = schedule_servicer.disable({}, {})
 
         print_message(schedule_info, 'test_disable_schedule')
@@ -278,7 +277,7 @@ class TestScheduleAPI(unittest.TestCase):
         self.assertEqual(schedule_info.state, schedule_pb2.ScheduleInfo.State.DISABLED)
 
     @patch.object(BaseAPI, '__init__', return_value=None)
-    @patch.object(Locator, 'get_service', return_value=_MockScheduleService())
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
     def test_get_schedule(self, mock_parse_request, *args):
         mock_parse_request.return_value = ({}, {})
@@ -291,7 +290,7 @@ class TestScheduleAPI(unittest.TestCase):
         self.assertIsInstance(schedule_info, schedule_pb2.ScheduleInfo)
 
     @patch.object(BaseAPI, '__init__', return_value=None)
-    @patch.object(Locator, 'get_service', return_value=_MockScheduleService())
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
     def test_list_schedules(self, mock_parse_request, *args):
         mock_parse_request.return_value = ({}, {})
@@ -306,7 +305,7 @@ class TestScheduleAPI(unittest.TestCase):
         self.assertEqual(schedules_info.total_count, 10)
 
     @patch.object(BaseAPI, '__init__', return_value=None)
-    @patch.object(Locator, 'get_service', return_value=_MockScheduleService())
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
     def test_stat_schedules(self, mock_parse_request, *args):
         mock_parse_request.return_value = ({}, {})

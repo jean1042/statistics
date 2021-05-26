@@ -35,7 +35,7 @@ class Schedule(BaseAPI, schedule_pb2_grpc.ScheduleServicer):
         params, metadata = self.parse_request(request, context)
 
         with self.locator.get_service('ScheduleService', metadata) as schedule_service:
-            schedule_service.delete(params)
+            schedule_service.deregister(params)
             return self.locator.get_info('EmptyInfo')
 
     def get(self, request, context):

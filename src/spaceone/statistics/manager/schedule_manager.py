@@ -18,7 +18,7 @@ class ScheduleManager(BaseManager):
             _LOGGER.info(f'[add_schedule._rollback] '
                          f'Delete schedule : {schedule_vo.topic} '
                          f'({schedule_vo.schedule_id})')
-            schedule_vo.delete()
+            schedule_vo.deregister()
 
         schedule_vo: Schedule = self.schedule_model.create(params)
         self.transaction.add_rollback(_rollback, schedule_vo)

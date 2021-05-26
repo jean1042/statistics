@@ -13,22 +13,24 @@ class Scheduled(EmbeddedDocument):
         return self.to_mongo()
 
 
-class ScheduleTag(EmbeddedDocument):
-    key = StringField(max_length=255)
-    value = StringField(max_length=255)
+class PluginInfo(EmbeddedDocument):
+    plugin_id = StringField(max_length=40)
+    version = FloatField()
+    options = DictField()
+    secret_data = DictField()
 
 
-class Schedule(MongoModel):
-    schedule_id = StringField(max_length=40, generate_id='sch', unique=True)
-    topic = StringField(max_length=255, unique_with='domain_id')
+class Storage(MongoModel):
+    storage_id = StringField(max_length=40, generate_id='sto', unique=True)
+    name = StringField(max_length=255)
     state = StringField(max_length=20, default='ENABLED', choices=('ENABLED', 'DISABLED'))
-    options = DictField(required=True)
-    schedule = EmbeddedDocumentField(Scheduled, default=Scheduled)
-    tags = ListField(EmbeddedDocumentField(ScheduleTag))
+    capability = DictField(required=True)
+    # tags = ListField(EmbeddedDocumentField(ScheduleTag))
+    tags = DictField()
+    plugin_info = DictField(EmbeddedDocumentField(PluginInfo))
     domain_id = StringField(max_length=255)
     user_id = StringField(max_length=255)
     created_at = DateTimeField(auto_now_add=True)
-    last_scheduled_at = DateTimeField(default=None, null=True)
 
     meta = {
         'updatable_fields': [

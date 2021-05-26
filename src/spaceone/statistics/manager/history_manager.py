@@ -17,7 +17,7 @@ class HistoryManager(BaseManager):
         def _rollback(history_vo):
             _LOGGER.info(f'[create_history._rollback] '
                          f'Delete history : {history_vo.topic}')
-            history_vo.delete()
+            history_vo.deregister()
 
         created_at = datetime.utcnow()
 

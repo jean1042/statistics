@@ -10,7 +10,6 @@ from spaceone.statistics.manager.schedule_manager import ScheduleManager
 
 _LOGGER = logging.getLogger(__name__)
 
-
 @authentication_handler
 @authorization_handler
 @mutation_handler
@@ -23,7 +22,7 @@ class ScheduleService(BaseService):
         self.schedule_mgr: ScheduleManager = self.locator.get_manager('ScheduleManager')
 
     @transaction(append_meta={'authorization.scope': 'DOMAIN'})
-    @check_required(['topic', 'options', 'schedule', 'domain_id'])
+    @check_required(['topic', 'options', 'schedule', 'domain_id', 'user_id'])
     def add(self, params):
         """Add schedule for statistics
 
@@ -33,7 +32,8 @@ class ScheduleService(BaseService):
                 'options': 'dict',
                 'schedule': 'dict',
                 'tags': 'dict',
-                'domain_id': 'str'
+                'domain_id': 'str',
+                'user_id': 'str'
             }
 
         Returns:
@@ -43,6 +43,7 @@ class ScheduleService(BaseService):
         domain_id = params['domain_id']
         options = copy.deepcopy(params['options'])
         schedule = params['schedule']
+        user_id = params['user_id']
 
         if 'tags' in params:
             params['tags'] = utils.dict_to_tags(params['tags'])

@@ -219,8 +219,9 @@ class ResourceManager(BaseManager):
             start = page.get('start', 1)
             if start < 1:
                 start = 1
-
-            response['results'] = results[start - 1:start + page['limit'] - 1]
+            _start = int(start - 1)
+            _end = int(start + page['limit'] - 1)
+            response['results'] = results[_start:_end]
         else:
             response['results'] = results
 

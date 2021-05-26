@@ -41,7 +41,7 @@ class TestScheduleService(unittest.TestCase):
         print()
         print('(tearDown) ==> Delete all schedules')
         schedule_vos = Schedule.objects.filter()
-        schedule_vos.delete()
+        schedule_vos.deregister()
 
     @patch.object(MongoModel, 'connect', return_value=None)
     @patch.object(ServiceConnector, '_check_resource_type', return_value=None)

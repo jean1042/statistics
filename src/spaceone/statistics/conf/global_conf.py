@@ -2,7 +2,7 @@ DATABASE_AUTO_CREATE_INDEX = True
 DATABASE_CASE_INSENSITIVE_INDEX = False
 DATABASES = {
     'default': {
-        'db': 'statistics',
+        'db': 'dev-statistics',
         'host': 'localhost',
         'port': 27017,
         'username': '',
