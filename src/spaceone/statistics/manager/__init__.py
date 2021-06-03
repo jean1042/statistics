@@ -1,3 +1,7 @@
 from spaceone.statistics.manager.resource_manager import ResourceManager
 from spaceone.statistics.manager.schedule_manager import ScheduleManager
 from spaceone.statistics.manager.history_manager import HistoryManager
+from spaceone.statistics.manager.storage_manager import StorageManager
+from spaceone.statistics.manager.secret_manager import SecretManager
+from spaceone.statistics.manager.plugin_manager import PluginManager
+from spaceone.statistics.manager.repository_manager import RepositoryManager

@@ -6,14 +6,13 @@ from spaceone.core.connector import BaseConnector
 from spaceone.core import pygrpc
 from spaceone.core.utils import parse_endpoint
 from spaceone.core.error import *
-from spaceone.statistics.error.resource import *
 
-__all__ = ['RepositoryConnector']
+__all__ = ['SecretConnector']
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class RepositoryConnector(BaseConnector):
+class SecretConnector(BaseConnector):
 
     def __init__(self, transaction, config):
         super().__init__(transaction, config)
@@ -32,22 +31,25 @@ class RepositoryConnector(BaseConnector):
         if len(self.config['endpoint']) > 1:
             raise ERROR_CONNECTOR_CONFIGURATION(backend=self.__class__.__name__)
 
-    def get_plugin(self, plugin_id, domain_id):
-        response = self.client.Plugin.get({
-            'plugin_id': plugin_id,
+    def list_secrets(self, query, domain_id):
+        response = self.client.Secret.list({
+            'query': query,
             'domain_id': domain_id
         }, metadata=self.transaction.get_connection_meta())
 
         return self._change_message(response)
 
-    def get_plugin_versions(self, plugin_id, domain_id):
-        response = self.client.Plugin.get_versions({
-            'plugin_id': plugin_id,
+    def get_secret_data(self, secret_id, domain_id):
+        response = self.client.Secret.get_data({
+            'secret_id': secret_id,
             'domain_id': domain_id
         }, metadata=self.transaction.get_connection_meta())
 
-        data = self._change_message(response)
-        return data['results']
+        return self._change_message(response)
+
+    def create_secret(self, params):
+        response = self.client.Secret.create(params, metadata=self.transaction.get_connection_meta())
+        return self._change_message(response)
 
     @staticmethod
     def _change_message(message):

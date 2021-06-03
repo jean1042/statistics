@@ -13,8 +13,9 @@ class Storage(BaseAPI, storage_pb2_grpc.StorageServicer):
             return self.locator.get_info('StorageInfo', storage_service.register(params))
 
     def update(self, request, context):
+        print(f'[REQUEST IN API] {request}')
         params, metadata = self.parse_request(request, context)
-
+        print(f'[REQUEST PARAMS] {params}')
         with self.locator.get_service('StorageService', metadata) as storage_service:
             return self.locator.get_info('StorageInfo', storage_service.update(params))
 
@@ -60,7 +61,7 @@ class Storage(BaseAPI, storage_pb2_grpc.StorageServicer):
 
         with self.locator.get_service('StorageService', metadata) as storage_service:
             storage_vos, total_count = storage_service.list(params)
-            return self.locator.get_info('StorageInfo', storage_vos,
+            return self.locator.get_info('StoragesInfo', storage_vos,
                                          total_count, minimal=self.get_minimal(params))
 
     def stat(self, request, context):

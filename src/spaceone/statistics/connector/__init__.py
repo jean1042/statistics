@@ -2,3 +2,4 @@ from spaceone.statistics.connector.service_connector import ServiceConnector
 from spaceone.statistics.connector.identity_connector import IdentityConnector
 from spaceone.statistics.connector.repository_connector import RepositoryConnector
 from spaceone.statistics.connector.plugin_connector import PluginConnector
+from spaceone.statistics.connector.secret_connector import SecretConnector

@@ -19,6 +19,6 @@ class RepositoryManager(BaseManager):
 
     def check_plugin_version(self, plugin_id, version, domain_id):
         versions = self.repo_connector.get_plugin_versions(plugin_id, domain_id)
-
+        print(f'[PLUGIN VERSIONS] {versions}')
         if version not in versions:
             raise ERROR_INVALID_PLUGIN_VERSION(plugin_id=plugin_id, version=version)

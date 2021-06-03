@@ -17,7 +17,8 @@ class PluginConnector(BaseConnector):
 
     def __init__(self, transaction, config):
         super().__init__(transaction, config)
-        self.client = {}
+        self._check_config()
+        self.initialize(config.get('endpoint'))
 
     def initialize(self, endpoint):
         static_endpoint = self.config.get('endpoint')
@@ -27,6 +28,17 @@ class PluginConnector(BaseConnector):
 
         e = parse_endpoint(endpoint)
         self.client = pygrpc.client(endpoint=f'{e.get("hostname")}:{e.get("port")}', version='plugin')
+
+    def init_client(self, service, resource):
+        if service not in self.client:
+            if service not in self.config:
+                raise ERROR_REQUIRED_PARAMETER(resource_type=f'{service}.{resource}')
+
+            e = parse_endpoint(self.config[service])
+            if e.get('path') is None:
+                raise ERROR_CONNECTOR_CONFIGURATION(backend=self.__class__.__name__)
+
+            self.client[service] = pygrpc.client(endpoint=f'{e.get("hostname")}:{e.get("port")}')
 
     def init(self, options):
         response = self.client.Storage.init({

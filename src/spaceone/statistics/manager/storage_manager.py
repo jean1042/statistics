@@ -13,10 +13,12 @@ class StorageManager(BaseManager):
         self.storage_model: Storage = self.locator.get_model('Storage')
 
     def register_storage(self, params):
+        print(f'[Params : ]{params}')
+
         def _rollback(storage_vo):
             _LOGGER.info(f'[register_storage._rollback] '
                          f'Delete storage : {storage_vo.name} '
-                         f'({storage_vo.schedule_id})')
+                         f'({storage_vo.storage_id})')
             storage_vo.deregister()
 
         storage_vo: Storage = self.storage_model.create(params)
@@ -26,6 +28,9 @@ class StorageManager(BaseManager):
 
     def update_storage(self, params):
         storage_vo: Storage = self.get_storage(params['storage_id'], params['domain_id'])
+        print(f'[PARAMS IN STORAGE MANAGER] {params}')
+        print(f'[Storage_vo IN STORAGE MANAGER] {storage_vo}')
+
         return self.update_storage_by_vo(params, storage_vo)
 
     def update_storage_plugin(self, params):
@@ -39,6 +44,10 @@ class StorageManager(BaseManager):
             storage_vo.update(old_data)
 
         self.transaction.add_rollback(_rollback, storage_vo.to_dict())
+
+        print(f'PARAMS in storage_manager:{params} ')
+        obj = storage_vo.update(params)
+        print(obj)
 
         return storage_vo.update(params)
 

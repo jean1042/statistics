@@ -166,7 +166,7 @@ class StatHourlyScheduler(HourlyScheduler):
                 'name': 'HistoryService',
                 'metadata': metadata,
                 'method': 'create',
-                'params': {'params': {'schedule_id': schedule.schedule_id, 'domain_id': domain['domain_id']}
+                'params': {'params': {'schedule_id': schedule.storage_id, 'domain_id': domain['domain_id']}
                            }
                 }
             sched_jobs.append(sched_job)

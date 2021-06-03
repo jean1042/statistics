@@ -16,14 +16,14 @@ class PluginManager(BaseManager):
     def initialize(self, plugin_id, version, domain_id):
         endpoint = self.plugin_connector.get_plugin_endpoint(plugin_id, version, domain_id)
         _LOGGER.debug(f'[init_plugin] endpoint: {endpoint}')
-        self.plugin_connector.initilize(endpoint)
+        self.plugin_connector.initialize(endpoint)
 
     def init_plugin(self, options):
         plugin_info = self.plugin_connector.init(options)
         _LOGGER.debug(f'[plugin_info]{plugin_info}')
         plugin_metadata = plugin_info.get('metadata', {})
 
-        self._validate_plugin_metadata(plugin_metadata, monitoring_type)
+        self._validate_plugin_metadata(plugin_metadata)
         return self.update_storage_by_vo()
 
     def update_storage_plugin(self, params):
