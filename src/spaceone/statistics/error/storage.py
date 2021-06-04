@@ -21,3 +21,6 @@ class ERROR_INVALID_RESOURCE_TYPE(ERROR_INVALID_ARGUMENT):
 
 class ERROR_STORAGE_OPTION(ERROR_INVALID_ARGUMENT):
     _message = 'Only one storage option can be set.'
+
+class ERROR_RESOURCE_ALREADY_DISABLED(ERROR_INVALID_ARGUMENT):
+    _message = '{resource_type} has already been deleted. ({resource_id})'

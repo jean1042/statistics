@@ -22,10 +22,8 @@ class PluginConnector(BaseConnector):
 
     def initialize(self, endpoint):
         static_endpoint = self.config.get('endpoint')
-
         if static_endpoint:
-            endpoint = static_endpoint
-
+            endpoint = static_endpoint.get('v1')
         e = parse_endpoint(endpoint)
         self.client = pygrpc.client(endpoint=f'{e.get("hostname")}:{e.get("port")}', version='plugin')
 
@@ -41,7 +39,7 @@ class PluginConnector(BaseConnector):
             self.client[service] = pygrpc.client(endpoint=f'{e.get("hostname")}:{e.get("port")}')
 
     def init(self, options):
-        response = self.client.Storage.init({
+        response = self.client.Plugin.init({
             'options': options
         }, metadata=self.transaction.get_connection_meta())
 

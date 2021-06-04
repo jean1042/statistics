@@ -1,6 +1,8 @@
 from mongoengine import *
+from datetime import datetime
 
 from spaceone.core.model.mongo_model import MongoModel
+from spaceone.statistics.error import *
 
 
 class PluginInfo(EmbeddedDocument):
@@ -29,7 +31,7 @@ class Storage(MongoModel):
 
     meta = {
         'updatable_fields': [
-            'storage_id',
+            'name',
             'state',
             'tags'
         ],
@@ -43,3 +45,12 @@ class Storage(MongoModel):
             'domain_id',
         ]
     }
+
+    def deregister(self):
+        if self.state == 'DISABLED':
+            raise ERROR_RESOURCE_ALREADY_DISABLED(resource_type='Storage', resource_id={self.storage_id})
+
+        self.update({
+            'state': 'DISABLED',
+            'deleted_at': datetime.utcnow()
+        })

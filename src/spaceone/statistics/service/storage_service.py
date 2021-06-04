@@ -10,6 +10,7 @@ from spaceone.statistics.manager.schedule_manager import ScheduleManager
 from spaceone.statistics.manager.storage_manager import StorageManager
 from spaceone.statistics.manager.plugin_manager import PluginManager
 from spaceone.statistics.manager.secret_manager import SecretManager
+from spaceone.statistics.manager.repository_manager import RepositoryManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +26,8 @@ class StorageService(BaseService):
         self.resource_mgr: ResourceManager = self.locator.get_manager('ResourceManager')
         self.schedule_mgr: ScheduleManager = self.locator.get_manager('ScheduleManager')
         self.storage_mgr: StorageManager = self.locator.get_manager('StorageManager')
-        # self.plugin_mgr: PluginManager = self.locator.get_manager('PluginManager')
+        self.plugin_mgr: PluginManager = self.locator.get_manager('PluginManager')
+        self.repository_mgr: RepositoryManager = self.locator.get_manager('RepositoryManager')
 
     @transaction(append_meta={'authorization.scope': 'DOMAIN'})
     @check_required(['name', 'domain_id', 'user_id', 'plugin_info'])
@@ -45,27 +47,27 @@ class StorageService(BaseService):
             storage_vo
         """
         domain_id = params['domain_id']
-        name = params['name']
-        user_id = params['user_id']
         _plugin_info = copy.deepcopy(params['plugin_info'])
 
         if 'secret_data' in _plugin_info:
             del _plugin_info['secret_data']
 
-        '''
-        self._check_plugin_info(plugin_info)
+        # TODO : Check real plugin info here!
+        # self._check_plugin_info(params['plugin_info'])
 
         # Update metadata
-        plugin_metadata = self._init_plugin(plugin_info, domain_id)
-        params['plugin_info']['metadata'] = plugin_metadata
-        '''
+        # TODO : Add a real Plugin Metadata here!
+        # plugin_metadata = self._init_plugin(params['plugin_info'], domain_id)
+        # params['plugin_info']['metadata'] = plugin_metadata
         new_secret = self._create_secret(params['plugin_info'], domain_id)
+
         # TODO::1 Please, Add a real Plugin_info to retrieve when its ready.
         _plugin_info['secret_id'] = new_secret.get('secret_id')
         _plugin_info['options'] = {}
         _plugin_info['metadata'] = {}
         params['plugin_info'] = _plugin_info
         params['capability'] = {}
+
         return self.storage_mgr.register_storage(params)
 
     @transaction(append_meta={'authorization.scope': 'DOMAIN'})
@@ -94,15 +96,15 @@ class StorageService(BaseService):
         Args:
             params (dict): {
                 'storage_id': 'str',
-                'name': 'str'
-                'tags': 'dict',
+                'version': 'str',
+                'options': 'dict',
                 'domain_id': 'str',
             }
 
         Returns:
             storage_vo (object)
 
-
+        NOTE:
         plugin_info = {
             plugin_id, version, [options(dict)], [secret_data(dict)], [schema]
         }
@@ -116,12 +118,9 @@ class StorageService(BaseService):
         storage_dict = storage_vo.to_dict()
         plugin_info = storage_dict['plugin_info']
 
-        if version:  # Update plugin_version
-            plugin_id = plugin_info['plugin_id']
+        # Update plugin_version and options
+        if version:
             domain_id = params['domain_id']
-            repo_mgr = self.locator.get_manager('RepositoryManager')
-            repo_mgr.check_plugin_version(plugin_id, version, domain_id)
-
             plugin_info['version'] = version
             metadata = self._init_plugin(plugin_info=plugin_info, domain_id=domain_id)
             plugin_info['metadata'] = metadata
@@ -138,6 +137,27 @@ class StorageService(BaseService):
         _LOGGER.debug(f'[update_plugin] {plugin_info}')
 
         return self.storage_mgr.update_storage_by_vo(params, storage_vo)
+
+    @transaction(append_meta={'authorization.scope': 'DOMAIN'})
+    @check_required(['storage_id', 'domain_id'])
+    def verify_plugin(self, params):
+        """ Verify storage plugin
+        Args:
+            params (dict): {
+                'storage_id': 'str',
+                'domain_id': 'str'
+            }
+        Returns:
+            storage_vo (object)
+        """
+
+        storage_id = params['storage_id']
+        domain_id = params['domain_id']
+        storage_vo = self.storage_mgr.get_storage(storage_id, domain_id)
+
+        self._verify_plugin(storage_vo.plugin_info, storage_vo.capability, domain_id)
+
+        return {'status': True}
 
     @transaction(append_meta={'authorization.scope': 'DOMAIN'})
     @check_required(['storage_id', 'domain_id'])
@@ -195,8 +215,9 @@ class StorageService(BaseService):
         Returns:
             None
         """
-
-        self.storage_mgr.deregister_storage(params['storage_id'], params['domain_id'])
+        # self.repository_mgr.deregister_storage(params['storage_id'], params['domain_id'])
+        storage_vo = self.storage_mgr.get_storage(params['storage_id'], params['domain_id'])
+        return self.storage_mgr.update_storage_by_vo({'state': 'DISABLED'}, storage_vo)
 
     @transaction(append_meta={'authorization.scope': 'DOMAIN'})
     @check_required(['storage_id', 'domain_id'])
@@ -261,36 +282,16 @@ class StorageService(BaseService):
         query = params.get('query', {})
         return self.storage_mgr.stat_storages(query)
 
-    @transaction
-    @append_query_filter([])
-    def list_domains(self, params):
-        """ This is used by Scheduler
-        Returns:
-            results (list)
-            total_count (int)
-        """
-        mgr = self.locator.get_manager('ScheduleManager')
-        query = params.get('query', {})
-        result = mgr.list_domains(query)
-        return result
-
-    def _verify_query_option(self, options, domain_id):
-        aggregate = options.get('aggregate', [])
-        page = options.get('page', {})
-
-        self.resource_mgr.stat(aggregate, page, domain_id)
-
     def _init_plugin(self, plugin_info, domain_id):
         plugin_id = plugin_info['plugin_id']
         version = plugin_info.get('version', '')
         options = plugin_info.get('options', '')
 
         plugin_mgr: PluginManager = self.locator.get_manager('PluginManager')
-        plugin_mgr.initialize(plugin_id, version, domain_id)
-        plugin_mgr.init_plugin(plugin_id, version, domain_id)
+        plugin_mgr.initialize(plugin_id, version, domain_id)  # Get plugin's new endpoint
+        return plugin_mgr.init_plugin(plugin_info, domain_id)
 
-        return plugin_mgr.init_plugin(options)
-
+    @staticmethod
     def _check_plugin_info(self, plugin_info):
         if 'plugin_id' not in plugin_info:
             raise ERROR_REQUIRED_PARAMETER(key='plugin_info.plugin_id')
@@ -302,6 +303,7 @@ class StorageService(BaseService):
         if secret_data is None:
             raise ERROR_REQUIRED_PARAMETER(key='plugin_info.secret_data')
 
+    @staticmethod
     def _check_secret_info(self, secret_data):
         if 'name' not in secret_data:
             raise ERROR_REQUIRED_PARAMETER(key='secret_data.name')
@@ -316,6 +318,17 @@ class StorageService(BaseService):
         secret_mgr: SecretManager = self.locator.get_manager('SecretManager')
         return secret_mgr.create_secret(name=secret_name, data=secret_data['data'], secret_type='CREDENTIALS', domain_id=domain_id)
 
+    def _verify_plugin(self, plugin_info, capability, domain_id):
+        plugin_id = plugin_info['plugin_id']
+        version = plugin_info['version']
+        options = plugin_info['options']
+        secret_id = plugin_info.get('secret_id')
 
+        secret_mgr: SecretManager = self.locator.get_manager('SecretManager')
+        secret_data, schema = secret_mgr.get_plugin_secret_data(secret_id, domain_id)
+
+        plugin_mgr: PluginManager = self.locator.get_manager('PluginManager')
+        plugin_mgr.initialize(plugin_id, version, domain_id)
+        plugin_mgr.verify_plugin(options, secret_data, schema)
 
 

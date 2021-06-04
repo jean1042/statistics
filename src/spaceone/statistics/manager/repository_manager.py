@@ -22,3 +22,10 @@ class RepositoryManager(BaseManager):
         print(f'[PLUGIN VERSIONS] {versions}')
         if version not in versions:
             raise ERROR_INVALID_PLUGIN_VERSION(plugin_id=plugin_id, version=version)
+
+    def deregister_plugin(self, plugin_id, domain_id):
+        repository_vo = self.get_plugin(plugin_id, domain_id)
+        repository_dict = repository_vo.__dict__
+        if repository_dict.get('repository_id'):
+            repository_vo.deregister(repository_vo['repository_id'], domain_id)
+

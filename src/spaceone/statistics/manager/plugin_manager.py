@@ -1,9 +1,11 @@
 import logging
 
 from spaceone.core.manager import BaseManager
+from spaceone.core import utils
 from spaceone.statistics.error import *
 from spaceone.statistics.model.storage_model import Storage
 from spaceone.statistics.connector.plugin_connector import PluginConnector
+from spaceone.statistics.connector.repository_connector import RepositoryConnector
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -12,23 +14,33 @@ class PluginManager(BaseManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.plugin_connector: PluginConnector = self.locator.get_connector('PluginConnector')
+        self.repository_connector: RepositoryConnector = self.locator.get_connector('RepositoryConnector')
 
     def initialize(self, plugin_id, version, domain_id):
         endpoint = self.plugin_connector.get_plugin_endpoint(plugin_id, version, domain_id)
         _LOGGER.debug(f'[init_plugin] endpoint: {endpoint}')
         self.plugin_connector.initialize(endpoint)
 
+    # TODO : Init Plugin Information
     def init_plugin(self, options):
         plugin_info = self.plugin_connector.init(options)
+        _LOGGER.debug(f'[plugin_info] {plugin_info}')
+        plugin_metadata = plugin_info.get('metadata', {})
+
+        self._validate_plugin_metadata(plugin_metadata)
+        return plugin_metadata
+
+    # TODO : Init Plugin Information
+    def register_plugin(self, plugin_info, domain_id):
+        name = utils.generate_id('storage-plugin', 4)
+        image = ''
+        plugin_info = self.repository_connector.register_plugin(name, image, domain_id)
         _LOGGER.debug(f'[plugin_info]{plugin_info}')
         plugin_metadata = plugin_info.get('metadata', {})
 
         self._validate_plugin_metadata(plugin_metadata)
-        return self.update_storage_by_vo()
-
-    def update_storage_plugin(self, params):
-        storage_vo: Storage = self.get_storage(params['storage_id'], params['domain_id'])
-        return self.update_storage_by_vo(params, storage_vo)
+        print(f'[PLUGIN_INFO AFTER INIT] {plugin_info}')
+        return self.update_storage_by_vo(params=plugin_info)
 
     def update_storage_by_vo(self, params, storage_vo):
         def _rollback(old_data):
@@ -39,19 +51,6 @@ class PluginManager(BaseManager):
         self.transaction.add_rollback(_rollback, storage_vo.to_dict())
 
         return storage_vo.update(params)
-
-    def deregister_storage(self, storage_id, domain_id):
-        storage_vo: Storage = self.get_storage(storage_id, domain_id)
-        storage_vo.deregister()
-
-    def get_storage(self, storage_id, domain_id, only=None):
-        return self.storage_model.get(storage_id=storage_id, domain_id=domain_id, only=only)
-
-    def list_storages(self, query={}):
-        return self.storage_model.query(**query)
-
-    def stat_storages(self, query):
-        return self.storage_model.stat(**query)
 
     def list_domains(self, query):
         identity_connector = self.locator.get_connector('IdentityConnector')

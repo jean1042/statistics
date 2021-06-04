@@ -13,8 +13,6 @@ class StorageManager(BaseManager):
         self.storage_model: Storage = self.locator.get_model('Storage')
 
     def register_storage(self, params):
-        print(f'[Params : ]{params}')
-
         def _rollback(storage_vo):
             _LOGGER.info(f'[register_storage._rollback] '
                          f'Delete storage : {storage_vo.name} '
@@ -28,13 +26,6 @@ class StorageManager(BaseManager):
 
     def update_storage(self, params):
         storage_vo: Storage = self.get_storage(params['storage_id'], params['domain_id'])
-        print(f'[PARAMS IN STORAGE MANAGER] {params}')
-        print(f'[Storage_vo IN STORAGE MANAGER] {storage_vo}')
-
-        return self.update_storage_by_vo(params, storage_vo)
-
-    def update_storage_plugin(self, params):
-        storage_vo: Storage = self.get_storage(params['storage_id'], params['domain_id'])
         return self.update_storage_by_vo(params, storage_vo)
 
     def update_storage_by_vo(self, params, storage_vo):
@@ -44,16 +35,7 @@ class StorageManager(BaseManager):
             storage_vo.update(old_data)
 
         self.transaction.add_rollback(_rollback, storage_vo.to_dict())
-
-        print(f'PARAMS in storage_manager:{params} ')
-        obj = storage_vo.update(params)
-        print(obj)
-
         return storage_vo.update(params)
-
-    def deregister_storage(self, storage_id, domain_id):
-        storage_vo: Storage = self.get_storage(storage_id, domain_id)
-        storage_vo.deregister()
 
     def get_storage(self, storage_id, domain_id, only=None):
         return self.storage_model.get(storage_id=storage_id, domain_id=domain_id, only=only)
@@ -63,7 +45,3 @@ class StorageManager(BaseManager):
 
     def stat_storages(self, query):
         return self.storage_model.stat(**query)
-
-    def list_domains(self, query):
-        identity_connector = self.locator.get_connector('IdentityConnector')
-        return identity_connector.list_domains(query)

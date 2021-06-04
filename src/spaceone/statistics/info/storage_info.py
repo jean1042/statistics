@@ -15,7 +15,6 @@ def PluginInfo(plugin_info: PluginInfo):
             'secret_id': plugin_info.secret_id,
             'options': change_struct_type(plugin_info.options),
             'metadata': change_struct_type(plugin_info.metadata)
-
         }
         return storage_pb2.PluginInfo(**info)
     return None
@@ -29,7 +28,6 @@ def StorageInfo(storage_vo: Storage, minimal=False):
     }
 
     if not minimal:
-        print(storage_vo.to_dict())
         info.update({
             'tags': change_struct_type(utils.tags_to_dict(storage_vo.tags)),
             'capability': change_struct_type(storage_vo.capability) if storage_vo.capability else None,

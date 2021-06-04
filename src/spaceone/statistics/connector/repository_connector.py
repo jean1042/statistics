@@ -25,6 +25,17 @@ class RepositoryConnector(BaseConnector):
             e = parse_endpoint(uri)
             self.client = pygrpc.client(endpoint=f'{e.get("hostname")}:{e.get("port")}', version=version)
 
+    def register_plugin(self, name, image, domain_id):
+        response = self.client.Plugin.register({
+            'name': name,
+            'image': 'image',
+            'service_type': 'local',
+            'domain_id': domain_id
+        }, metadata=self.transaction.get_connection_meta())
+        print(f'[REPOSITORY CONNECTOR REGISTER PLUGIN] {response}')
+        data = self._change_message(response)
+        return data
+
     def _check_config(self):
         if 'endpoint' not in self.config:
             raise ERROR_CONNECTOR_CONFIGURATION(backend=self.__class__.__name__)
@@ -45,7 +56,7 @@ class RepositoryConnector(BaseConnector):
             'plugin_id': plugin_id,
             'domain_id': domain_id
         }, metadata=self.transaction.get_connection_meta())
-
+        print(f'[REPOSITORY CONNECTOR] {response}')
         data = self._change_message(response)
         return data['results']
 
