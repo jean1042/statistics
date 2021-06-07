@@ -29,7 +29,7 @@ def StorageInfo(storage_vo: Storage, minimal=False):
 
     if not minimal:
         info.update({
-            'tags': change_struct_type(utils.tags_to_dict(storage_vo.tags)),
+            'tags': change_struct_type(storage_vo.tags) if storage_vo.tags else None,
             'capability': change_struct_type(storage_vo.capability) if storage_vo.capability else None,
             'plugin_info': PluginInfo(storage_vo.plugin_info) if storage_vo.plugin_info else None,
             'user_id': storage_vo.user_id,

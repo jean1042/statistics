@@ -15,10 +15,13 @@ from spaceone.core.locator import Locator
 from spaceone.core.pygrpc import BaseAPI
 from spaceone.api.statistics.v1 import storage_pb2
 from spaceone.statistics.api.v1.storage import Storage
-from test.factory.schedule_factory import ScheduleFactory
+from test.factory.storage_factory import StorageFactory
+from spaceone.statistics.connector import PluginConnector
+from spaceone.core.model.mongo_model import MongoModel
+
 
 class _MockStorageService(BaseService):
-
+    '''
     def add(self, params):
         params = copy.deepcopy(params)
         if 'tags' in params:
@@ -52,7 +55,36 @@ class _MockStorageService(BaseService):
         return {
             'results': [{'project_id': utils.generate_id('project'), 'server_count': 100}]
         }
+    '''
 
+    def get(self, params):
+        params = copy.deepcopy(params)
+        return StorageFactory(**params)
+
+    def register(self, params):
+        return StorageFactory(**params)
+
+    def update(self, params):
+        params = copy.deepcopy(params)
+        return StorageFactory(**params)
+
+    def list(self, params):
+        return StorageFactory.build_batch(10, **params), 10
+
+    def enable(self, params):
+        return StorageFactory(**params)
+
+    def disable(self, params):
+        return StorageFactory(**params)
+
+    def deregister(self, params):
+        return StorageFactory(**params)
+
+    def update_plugin(self, params):
+        return StorageFactory(**params)
+
+    def verify_plugin(self, params):
+        return StorageFactory(**params)
 
 class TestStorageAPI(unittest.TestCase):
 
@@ -61,7 +93,6 @@ class TestStorageAPI(unittest.TestCase):
         config.init_conf(package='spaceone.statistics')
         connect('test', host='mongomock://localhost')
         config_path = os.environ.get('SPACEONE_CONFIG_FILE')
-        test_config = utils.load_yaml_from_file(config_path)
 
         super().setUpClass()
 
@@ -73,141 +104,48 @@ class TestStorageAPI(unittest.TestCase):
     @patch.object(BaseAPI, '__init__', return_value=None)
     @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
-    def test_add_storage(self, mock_parse_request, *args):
+    def test_register_storage(self, mock_parse_request, *args):
         params = {
-            'topic': utils.random_string(),
-            'options': {
-                'aggregate': [
-                    {
-                        'query': {
-                            'resource_type': 'identity.Project',
-                            'query': {
-                                'aggregate': [
-                                    {
-                                        'group': {
-                                            'keys': [
-                                                {
-                                                    'key': 'project_id',
-                                                    'name': 'project_id'
-                                                },
-                                                {
-                                                    'key': 'name',
-                                                    'name': 'project_name'
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    {
-                        'join': {
-                            'resource_type': 'inventory.Server',
-                            'type': 'LEFT',
-                            'keys': ['project_id'],
-                            'query': {
-                                'aggregate': [
-                                    {
-                                        'group': {
-                                            'keys': [
-                                                {
-                                                    'key': 'project_id',
-                                                    'name': 'project_id'
-                                                }
-                                            ],
-                                            'fields': [
-                                                {
-                                                    'operator': 'count',
-                                                    'name': 'server_count'
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    {
-                        'join': {
-                            'resource_type': 'inventory.CloudService',
-                            'type': 'LEFT',
-                            'keys': ['project_id'],
-                            'query': {
-                                'aggregate': [
-                                    {
-                                        'group': {
-                                            'keys': [
-                                                {
-                                                    'key': 'project_id',
-                                                    'name': 'project_id'
-                                                }
-                                            ],
-                                            'fields': [
-                                                {
-                                                    'operator': 'count',
-                                                    'name': 'cloud_service_count'
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    {
-                        'formula': {
-                            'eval': 'resource_count = server_count + cloud_service_count'
-                        }
-                    },
-                    {
-                        'sort': {
-                            'key': 'resource_count',
-                            'desc': True
-                        }
-                    }
-                ],
-                'page': {
-                    'limit': 5
-                }
-            },
-            'schedule': {
-                'cron': '*/5 * * * *',
-                'interval': 5,
-                'minutes': [0, 10, 20, 30, 40, 50],
-                'hours': [0, 6, 12, 18]
-            },
+            'name': utils.generate_id('storage', 4),
             'tags': {
-                utils.random_string(): utils.random_string()
+                utils.random_string(5): utils.random_string(5)
             },
+            'plugin_info': {
+                'plugin_id': utils.generate_id('plugin'),
+                'version': '1.1',
+                'secret_id': utils.generate_id('secret')
+            },
+            'user_id': utils.generate_id('user'),
             'domain_id': utils.generate_id('domain')
         }
         mock_parse_request.return_value = (params, {})
-
         storage_servicer = Storage()
-        storage_info = storage_servicer.register({}, {})
 
+        storage_info = storage_servicer.register(params, {})
         print_message(storage_info, 'test_register_storage')
+
         storage_data = MessageToDict(storage_info, preserving_proto_field_name=True)
 
         self.assertIsInstance(storage_info, storage_pb2.StorageInfo)
-        self.assertEqual(storage_info.topic, params['topic'])
-        self.assertEqual(storage_info.state, storage_pb2.StorageInfo.State.ENABLED)
-        self.assertEqual(storage_data['options'], params['options'])
-        self.assertDictEqual(storage_data['schedule'], params['schedule'])
+        self.assertEqual(storage_info.name, params['name'])
+        self.assertEqual(storage_data['state'], 'ENABLED')
+        # self.assertIsNotNone(storage_info.capability)
         self.assertDictEqual(storage_data['tags'], params['tags'])
-        self.assertEqual(storage_info.domain_id, params['domain_id'])
+        self.assertIsInstance(storage_info.plugin_info, storage_pb2.PluginInfo)  # Check if 'PluginInfo' exists
+        self.assertEqual(storage_data['plugin_info']['plugin_id'], params['plugin_info']['plugin_id'])
+        self.assertEqual(storage_data['plugin_info']['version'], params['plugin_info']['version'])
+        self.assertEqual(storage_data['domain_id'], params['domain_id'])
         self.assertIsNotNone(getattr(storage_info, 'created_at', None))
+
+        print(f'[TEST REGISTER STORAGE] {storage_data}')
 
     @patch.object(BaseAPI, '__init__', return_value=None)
     @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
-    def test_update_schedule(self, mock_parse_request, *args):
+    def test_update_storage(self, mock_parse_request, *args):
         params = {
-            'schedule_id': utils.generate_id('schedule'),
-            'schedule': {
-                'cron': '* * * * *'
-            },
+            'storage_id': utils.generate_id('storage'),
+            'name': 'update-storage-name',
             'tags': {
                 'update_key': 'update_value'
             },
@@ -216,78 +154,35 @@ class TestStorageAPI(unittest.TestCase):
         mock_parse_request.return_value = (params, {})
 
         storage_servicer = Storage()
-        schedule_info = storage_servicer.update({}, {})
+        storage_info = storage_servicer.update(params, {})
 
-        print_message(schedule_info, 'test_update_schedule')
-        schedule_data = MessageToDict(schedule_info, preserving_proto_field_name=True)
+        print_message(storage_info, 'test_update_schedule')
+        storage_data = MessageToDict(storage_info, preserving_proto_field_name=True)
 
-        self.assertIsInstance(schedule_info, storage_pb2.StorageInfo)
-        self.assertEqual(schedule_data['schedule'], params['schedule'])
-        self.assertDictEqual(schedule_data['tags'], params['tags'])
+        self.assertIsInstance(storage_info, storage_pb2.StorageInfo)
+        self.assertEqual(storage_data['name'], params['name'])
+        self.assertEqual(storage_data['storage_id'], params['storage_id'])
+        self.assertDictEqual(storage_data['tags'], params['tags'])
+
+        print(f'[TEST UPDATE STORAGE] {storage_data}')
 
     @patch.object(BaseAPI, '__init__', return_value=None)
     @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
-    def test_delete_schedule(self, mock_parse_request, *args):
+    def test_get_storage(self, mock_parse_request, *args):
         mock_parse_request.return_value = ({}, {})
-
-        schedule_servicer = Schedule()
-        result = schedule_servicer.deregister({}, {})
-
-        print_message(result, 'test_delete_schedule')
-
-        self.assertIsInstance(result, Empty)
-
-    @patch.object(BaseAPI, '__init__', return_value=None)
-    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
-    @patch.object(BaseAPI, 'parse_request')
-    def test_enable_schedule(self, mock_parse_request, *args):
         params = {
-            'schedule_id': utils.generate_id('schedule'),
-            'state': 'ENABLED',
-            'domain_id': utils.generate_id('domain')
+            'domain_id': utils.generate_id('domain'),
+            'storage_id': utils.generate_id('storage')
         }
-        mock_parse_request.return_value = (params, {})
+        storage_servicer = Storage()
+        storage_info = storage_servicer.get(params, {})
+        storage_data = MessageToDict(storage_info, preserving_proto_field_name=True)
 
-        schedule_servicer = Storage()
-        schedule_info = schedule_servicer.enable({}, {})
+        print_message(storage_info, 'test_get_schedule')
+        self.assertIsInstance(storage_info, storage_pb2.StorageInfo)
 
-        print_message(schedule_info, 'test_enable_schedule')
-
-        self.assertIsInstance(schedule_info, storage_pb2.StorageInfo)
-        self.assertEqual(schedule_info.state, storage_pb2.StorageInfo.State.ENABLED)
-
-    @patch.object(BaseAPI, '__init__', return_value=None)
-    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
-    @patch.object(BaseAPI, 'parse_request')
-    def test_disable_schedule(self, mock_parse_request, *args):
-        params = {
-            'schedule_id': utils.generate_id('schedule'),
-            'state': 'DISABLED',
-            'domain_id': utils.generate_id('domain')
-        }
-        mock_parse_request.return_value = (params, {})
-
-        schedule_servicer = Storage()
-        schedule_info = schedule_servicer.disable({}, {})
-
-        print_message(schedule_info, 'test_disable_schedule')
-
-        self.assertIsInstance(schedule_info, schedule_pb2.ScheduleInfo)
-        self.assertEqual(schedule_info.state, schedule_pb2.ScheduleInfo.State.DISABLED)
-
-    @patch.object(BaseAPI, '__init__', return_value=None)
-    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
-    @patch.object(BaseAPI, 'parse_request')
-    def test_get_schedule(self, mock_parse_request, *args):
-        mock_parse_request.return_value = ({}, {})
-
-        schedule_servicer = Schedule()
-        schedule_info = schedule_servicer.get({}, {})
-
-        print_message(schedule_info, 'test_get_schedule')
-
-        self.assertIsInstance(schedule_info, schedule_pb2.ScheduleInfo)
+        print(f'[TEST GET STORAGE] {storage_data}')
 
     @patch.object(BaseAPI, '__init__', return_value=None)
     @patch.object(Locator, 'get_service', return_value=_MockStorageService())
@@ -295,26 +190,134 @@ class TestStorageAPI(unittest.TestCase):
     def test_list_schedules(self, mock_parse_request, *args):
         mock_parse_request.return_value = ({}, {})
 
-        schedule_servicer = Schedule()
-        schedules_info = schedule_servicer.list({}, {})
+        storage_servicer = Storage()
+        schedules_info = storage_servicer.list({}, {})
 
         print_message(schedules_info, 'test_list_schedules')
 
-        self.assertIsInstance(schedules_info, schedule_pb2.SchedulesInfo)
-        self.assertIsInstance(schedules_info.results[0], schedule_pb2.ScheduleInfo)
+        self.assertIsInstance(schedules_info, storage_pb2.StoragesInfo)
+        self.assertIsInstance(schedules_info.results[0], storage_pb2.StorageInfo)
         self.assertEqual(schedules_info.total_count, 10)
 
     @patch.object(BaseAPI, '__init__', return_value=None)
     @patch.object(Locator, 'get_service', return_value=_MockStorageService())
     @patch.object(BaseAPI, 'parse_request')
-    def test_stat_schedules(self, mock_parse_request, *args):
-        mock_parse_request.return_value = ({}, {})
+    def test_enable_storage(self, mock_parse_request, *args):
+        params = {
+            'storage_id': utils.generate_id('storage'),
+            'state': 'ENABLED',
+            'domain_id': utils.generate_id('domain')
+        }
+        mock_parse_request.return_value = (params, {})
 
-        schedule_servicer = Schedule()
-        stat_info = schedule_servicer.stat({}, {})
+        storage_servicer = Storage()
+        storage_info = storage_servicer.enable(params, {})
+        storage_data = MessageToDict(storage_info, preserving_proto_field_name=True)
 
-        print_message(stat_info, 'test_stat_schedules')
+        print_message(storage_info, 'test_enable_storage')
 
+        self.assertIsInstance(storage_info, storage_pb2.StorageInfo)
+        self.assertEqual(storage_info.state, storage_pb2.StorageInfo.State.ENABLED)
+
+        print(f'[TEST ENABLE STORAGE] {storage_data}')
+
+    @patch.object(BaseAPI, '__init__', return_value=None)
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
+    @patch.object(BaseAPI, 'parse_request')
+    def test_disable_storage(self, mock_parse_request, *args):
+        params = {
+            'storage_id': utils.generate_id('storage'),
+            'state': 'DISABLED',
+            'domain_id': utils.generate_id('domain')
+        }
+        mock_parse_request.return_value = (params, {})
+
+        storage_servicer = Storage()
+        storage_info = storage_servicer.disable(params, {})
+        storage_data = MessageToDict(storage_info, preserving_proto_field_name=True)
+
+        print_message(storage_info, 'test_disable_storage')
+
+        self.assertIsInstance(storage_info, storage_pb2.StorageInfo)
+        self.assertEqual(storage_info.state, storage_pb2.StorageInfo.State.DISABLED)
+
+        print(f'[TEST DISABLE STORAGE] {storage_data}')
+
+    @patch.object(BaseAPI, '__init__', return_value=None)
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
+    @patch.object(BaseAPI, 'parse_request')
+    def test_deregister_storage(self, mock_parse_request, *args):
+        params = {
+            'storage_id': utils.generate_id('storage'),
+            'domain_id': utils.generate_id('domain')
+        }
+        mock_parse_request.return_value = (params, {})
+
+        storage_servicer = Storage()
+        storage_info = storage_servicer.deregister(params, {})
+        storage_data = MessageToDict(storage_info, preserving_proto_field_name=True)
+
+        print_message(storage_info, 'test_deregister_storage')
+        # TODO : ASK!!
+        # self.assertIsInstance(storage_info, Empty)
+        # self.assertEqual(storage_info.state, storage_pb2.StorageInfo.State.DISABLED)
+
+        print(f'[TEST DEREGISTER STORAGE] {storage_data}')
+
+    @patch.object(BaseAPI, '__init__', return_value=None)
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
+    @patch.object(PluginConnector, '__init__', return_value=None)
+    @patch.object(PluginConnector, 'initialize', return_value='grpc://plugin.spaceone.dev:50051')
+    @patch.object(PluginConnector, 'get_plugin_endpoint', return_value='grpc://plugin.spaceone.dev:50051')
+    @patch.object(BaseAPI, 'parse_request')
+    def test_update_plugin(self, mock_parse_request, *args):
+        params = {
+            'storage_id': utils.generate_id('storage'),
+            'name': 'storage-plugin-update',
+            'plugin_info': {
+                'plugin_id': utils.generate_id('storage'),
+                'version': '3.0',
+                'options': {},
+            },
+            'tags': {
+                'update_key': 'update_value'
+            },
+            'domain_id': utils.generate_id('domain')
+        }
+        mock_parse_request.return_value = (params, {})
+        storage_servicer = Storage()
+        storage_info = storage_servicer.update_plugin(params, {})
+        storage_data = MessageToDict(storage_info, preserving_proto_field_name=True)
+        print_message(storage_info, 'test_update_storage_plugin')
+
+        self.assertIsInstance(storage_info, storage_pb2.StorageInfo)
+        self.assertEqual(storage_info.name, params['name'])
+        self.assertDictEqual(storage_data['tags'], params['tags'])
+        self.assertEqual(storage_info.plugin_info.version, params['plugin_info']['version'])
+        self.assertIsNotNone(storage_info.plugin_info)
+
+        print(f'[TEST UPDATE STORAGE PLUGIN] {storage_data}')
+
+    @patch.object(BaseAPI, '__init__', return_value=None)
+    @patch.object(Locator, 'get_service', return_value=_MockStorageService())
+    @patch.object(PluginConnector, '__init__', return_value=None)
+    @patch.object(PluginConnector, 'initialize', return_value='grpc://plugin.spaceone.dev:50051')
+    @patch.object(PluginConnector, 'get_plugin_endpoint', return_value='grpc://plugin.spaceone.dev:50051')
+    @patch.object(BaseAPI, 'parse_request')
+    def test_verify_plugin(self, mock_parse_request, *args):
+        params = {
+            'storage_id': utils.generate_id('storage'),
+            'domain_id': utils.generate_id('domain')
+        }
+        mock_parse_request.return_value = (params, {})
+        storage_servicer = Storage()
+        storage_info = storage_servicer.verify_plugin(params, {})
+        storage_data = MessageToDict(storage_info, preserving_proto_field_name=True)
+        print_message(storage_info, 'test_deregister_storage_plugin')
+
+        self.assertIsInstance(storage_info, Empty)
+
+        print(f'[TEST VERIFY STORAGE PLUGIN] {storage_data}')
 
 if __name__ == "__main__":
     unittest.main(testRunner=RichTestRunner)

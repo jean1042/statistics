@@ -21,7 +21,6 @@ class PluginManager(BaseManager):
         _LOGGER.debug(f'[init_plugin] endpoint: {endpoint}')
         self.plugin_connector.initialize(endpoint)
 
-    # TODO : Init Plugin Information
     def init_plugin(self, options):
         plugin_info = self.plugin_connector.init(options)
         _LOGGER.debug(f'[plugin_info] {plugin_info}')
@@ -30,9 +29,8 @@ class PluginManager(BaseManager):
         self._validate_plugin_metadata(plugin_metadata)
         return plugin_metadata
 
-    # TODO : Init Plugin Information
     def register_plugin(self, plugin_info, domain_id):
-        name = utils.generate_id('storage-plugin', 4)
+        name = utils.generate_id('storage', 4)
         image = ''
         plugin_info = self.repository_connector.register_plugin(name, image, domain_id)
         _LOGGER.debug(f'[plugin_info]{plugin_info}')
@@ -55,6 +53,9 @@ class PluginManager(BaseManager):
     def list_domains(self, query):
         identity_connector = self.locator.get_connector('IdentityConnector')
         return identity_connector.list_domains(query)
+
+    def verify_plugin(self, params, secret_data):
+        self.plugin_connector.verify(params, secret_data)
 
     @staticmethod
     def _validate_plugin_metadata(plugin_metadata):

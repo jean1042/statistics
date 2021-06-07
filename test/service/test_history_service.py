@@ -181,7 +181,7 @@ class TestHistoryService(unittest.TestCase):
         ]
 
         params = {
-            'schedule_id': new_schedule_vo.schedule_id,
+            'schedule_id': new_schedule_vo.storage_id,
             'domain_id': self.domain_id
         }
 

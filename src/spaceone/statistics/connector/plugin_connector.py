@@ -45,6 +45,14 @@ class PluginConnector(BaseConnector):
 
         return self._change_message(response)
 
+    def verify(self, options, secret_data):
+        params = {
+            'options': options,
+            'secret_data': secret_data
+        }
+
+        self.client.Protocol.verify(params, metadata=self.transaction.get_connection_meta())
+
     def _check_config(self):
         if 'endpoint' not in self.config:
             raise ERROR_CONNECTOR_CONFIGURATION(backend=self.__class__.__name__)

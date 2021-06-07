@@ -18,7 +18,6 @@ class StorageManager(BaseManager):
                          f'Delete storage : {storage_vo.name} '
                          f'({storage_vo.storage_id})')
             storage_vo.deregister()
-
         storage_vo: Storage = self.storage_model.create(params)
         self.transaction.add_rollback(_rollback, storage_vo)
 

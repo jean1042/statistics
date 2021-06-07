@@ -210,7 +210,7 @@ class TestScheduleService(unittest.TestCase):
         new_schedule_vo = ScheduleFactory(domain_id=self.domain_id)
 
         params = {
-            'schedule_id': new_schedule_vo.schedule_id,
+            'schedule_id': new_schedule_vo.storage_id,
             'schedule': {
                 'cron': '*/5 * * * *'
             },
@@ -228,7 +228,7 @@ class TestScheduleService(unittest.TestCase):
         ScheduleInfo(schedule_vo)
 
         self.assertIsInstance(schedule_vo, Schedule)
-        self.assertEqual(new_schedule_vo.schedule_id, schedule_vo.schedule_id)
+        self.assertEqual(new_schedule_vo.storage_id, schedule_vo.schedule_id)
         self.assertIsInstance(schedule_vo.schedule, Scheduled)
         self.assertEqual(schedule_vo.schedule.cron, params['schedule']['cron'])
         self.assertEqual(params['tags'], utils.tags_to_dict(schedule_vo.tags))
@@ -239,7 +239,7 @@ class TestScheduleService(unittest.TestCase):
         new_schedule_vo = ScheduleFactory(domain_id=self.domain_id)
 
         params = {
-            'schedule_id': new_schedule_vo.schedule_id,
+            'schedule_id': new_schedule_vo.storage_id,
             'schedule': {
                 'cron': '*/5 * * * *',
                 'interval': 5
@@ -261,7 +261,7 @@ class TestScheduleService(unittest.TestCase):
         new_schedule_vo = ScheduleFactory(domain_id=self.domain_id, state='DISABLED')
 
         params = {
-            'schedule_id': new_schedule_vo.schedule_id,
+            'schedule_id': new_schedule_vo.storage_id,
             'domain_id': self.domain_id
         }
 
@@ -273,7 +273,7 @@ class TestScheduleService(unittest.TestCase):
         ScheduleInfo(schedule_vo)
 
         self.assertIsInstance(schedule_vo, Schedule)
-        self.assertEqual(new_schedule_vo.schedule_id, schedule_vo.schedule_id)
+        self.assertEqual(new_schedule_vo.storage_id, schedule_vo.schedule_id)
         self.assertEqual('ENABLED', schedule_vo.state)
 
     @patch.object(MongoModel, 'connect', return_value=None)
@@ -281,7 +281,7 @@ class TestScheduleService(unittest.TestCase):
         new_schedule_vo = ScheduleFactory(domain_id=self.domain_id, state='ENABLED')
 
         params = {
-            'schedule_id': new_schedule_vo.schedule_id,
+            'schedule_id': new_schedule_vo.storage_id,
             'domain_id': self.domain_id
         }
 
@@ -293,7 +293,7 @@ class TestScheduleService(unittest.TestCase):
         ScheduleInfo(schedule_vo)
 
         self.assertIsInstance(schedule_vo, Schedule)
-        self.assertEqual(new_schedule_vo.schedule_id, schedule_vo.schedule_id)
+        self.assertEqual(new_schedule_vo.storage_id, schedule_vo.schedule_id)
         self.assertEqual('DISABLED', schedule_vo.state)
 
     @patch.object(MongoModel, 'connect', return_value=None)
@@ -301,7 +301,7 @@ class TestScheduleService(unittest.TestCase):
         new_schedule_vo = ScheduleFactory(domain_id=self.domain_id)
 
         params = {
-            'schedule_id': new_schedule_vo.schedule_id,
+            'schedule_id': new_schedule_vo.storage_id,
             'domain_id': self.domain_id
         }
 
@@ -316,7 +316,7 @@ class TestScheduleService(unittest.TestCase):
         new_schedule_vo = ScheduleFactory(domain_id=self.domain_id)
 
         params = {
-            'schedule_id': new_schedule_vo.schedule_id,
+            'schedule_id': new_schedule_vo.storage_id,
             'domain_id': self.domain_id
         }
 
@@ -335,7 +335,7 @@ class TestScheduleService(unittest.TestCase):
         list(map(lambda vo: vo.save(), schedule_vos))
 
         params = {
-            'schedule_id': schedule_vos[0].schedule_id,
+            'schedule_id': schedule_vos[0].storage_id,
             'domain_id': self.domain_id
         }
 

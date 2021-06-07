@@ -46,28 +46,27 @@ class StorageService(BaseService):
         Returns:
             storage_vo
         """
+
         domain_id = params['domain_id']
         _plugin_info = copy.deepcopy(params['plugin_info'])
+        print(f'[SERVICE] Params {params}')
+        params['state'] = 'ENABLED'
 
         if 'secret_data' in _plugin_info:
             del _plugin_info['secret_data']
 
-        # TODO : Check real plugin info here!
-        # self._check_plugin_info(params['plugin_info'])
+        self._check_plugin_info(params['plugin_info'])
 
         # Update metadata
-        # TODO : Add a real Plugin Metadata here!
-        # plugin_metadata = self._init_plugin(params['plugin_info'], domain_id)
-        # params['plugin_info']['metadata'] = plugin_metadata
+        plugin_metadata = self._init_plugin(params['plugin_info'], domain_id)
+        params['plugin_info']['metadata'] = plugin_metadata
         new_secret = self._create_secret(params['plugin_info'], domain_id)
 
-        # TODO::1 Please, Add a real Plugin_info to retrieve when its ready.
         _plugin_info['secret_id'] = new_secret.get('secret_id')
-        _plugin_info['options'] = {}
-        _plugin_info['metadata'] = {}
+        # _plugin_info['options'] = {}
+        # _plugin_info['metadata'] = plugin_metadata
         params['plugin_info'] = _plugin_info
-        params['capability'] = {}
-
+        # params['capability'] = {}
         return self.storage_mgr.register_storage(params)
 
     @transaction(append_meta={'authorization.scope': 'DOMAIN'})
@@ -157,7 +156,7 @@ class StorageService(BaseService):
 
         self._verify_plugin(storage_vo.plugin_info, storage_vo.capability, domain_id)
 
-        return {'status': True}
+        # return {'status': True}
 
     @transaction(append_meta={'authorization.scope': 'DOMAIN'})
     @check_required(['storage_id', 'domain_id'])
@@ -217,6 +216,7 @@ class StorageService(BaseService):
         """
         # self.repository_mgr.deregister_storage(params['storage_id'], params['domain_id'])
         storage_vo = self.storage_mgr.get_storage(params['storage_id'], params['domain_id'])
+        # return self.storage_mgr.delete()
         return self.storage_mgr.update_storage_by_vo({'state': 'DISABLED'}, storage_vo)
 
     @transaction(append_meta={'authorization.scope': 'DOMAIN'})
@@ -288,11 +288,12 @@ class StorageService(BaseService):
         options = plugin_info.get('options', '')
 
         plugin_mgr: PluginManager = self.locator.get_manager('PluginManager')
+        print(f'f[PLUGIN ID: {plugin_id}]')
         plugin_mgr.initialize(plugin_id, version, domain_id)  # Get plugin's new endpoint
         return plugin_mgr.init_plugin(plugin_info, domain_id)
 
     @staticmethod
-    def _check_plugin_info(self, plugin_info):
+    def _check_plugin_info(plugin_info):
         if 'plugin_id' not in plugin_info:
             raise ERROR_REQUIRED_PARAMETER(key='plugin_info.plugin_id')
 
@@ -303,7 +304,6 @@ class StorageService(BaseService):
         if secret_data is None:
             raise ERROR_REQUIRED_PARAMETER(key='plugin_info.secret_data')
 
-    @staticmethod
     def _check_secret_info(self, secret_data):
         if 'name' not in secret_data:
             raise ERROR_REQUIRED_PARAMETER(key='secret_data.name')
@@ -314,9 +314,10 @@ class StorageService(BaseService):
     def _create_secret(self, plugin_info, domain_id):
         secret_data = plugin_info.get('secret_data')
         self._check_secret_info(secret_data)
-        secret_name = utils.generate_id('storage-secret', 4)
+        secret_name = utils.generate_id('secret', 4)
         secret_mgr: SecretManager = self.locator.get_manager('SecretManager')
-        return secret_mgr.create_secret(name=secret_name, data=secret_data['data'], secret_type='CREDENTIALS', domain_id=domain_id)
+        new_secret = secret_mgr.create_secret(name=secret_name, data=secret_data['data'], secret_type='CREDENTIALS', domain_id=domain_id)
+        return new_secret
 
     def _verify_plugin(self, plugin_info, capability, domain_id):
         plugin_id = plugin_info['plugin_id']
